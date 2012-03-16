@@ -42,12 +42,16 @@ typedef struct {
 /*------------------------------------------------------------*/
 /* routes file parser                                         */
 /*------------------------------------------------------------*/
+static state *end_states[MAX_STATES];
+static state *start_states[MAX_STATES];
+static int routes_count = 0;
+
 // TODO: implement parameter globbing (:id)
 // TODO: add http verbs as an option for routes, e.g
 // show_book GET /books/:id
 // delete_book DELETE /books/:id
 
-state *parse_line(char *line, char *end_line, int line_number) {
+void parse_line(char *line, char *end_line, int line_number) {
   // start and end states of the transition
   state *start_state, *end_state, *previous_state, *current_state;
   start_state = (state *) calloc(1, sizeof(state));
@@ -106,7 +110,9 @@ state *parse_line(char *line, char *end_line, int line_number) {
     line++;
   }
   
-  return start_state;
+  start_states[routes_count] = start_state;
+  end_states[routes_count] = end_state;
+  routes_count++;
 }
 
 
@@ -214,7 +220,10 @@ void switch_for_state(state *current_state) {
 }
 
 void generate_code(state *start) {
-  printf("int match_url(char *url, crest_connection *connection) {\n");
+  printf("#include \"crest.h\"\n\n");
+  for(int i = 0; i < routes_count; i++)
+    printf("extern void %s(crest_connection *connection);\n", end_states[i]->function_name);
+  printf("\nint match_url(char *url, crest_connection *connection) {\n");
   switch_for_state(start);
   printf("}\n");
 }
@@ -252,9 +261,8 @@ int main(int argc, char **argv) {
   // the parse_line function reads the next line from
   // data and returns a new start state representing
   // the url and function defined on that line
-  int states_count = 0, line_number = 1;
   char *start = data, *end = data;
-  state *states[MAX_STATES];
+  int line_number = 1;
   
   while(*data) {
     // determine start and end points of the next line
@@ -273,11 +281,12 @@ int main(int argc, char **argv) {
     if(start == end)
       continue;
     
-    // process the next statement
-    states[states_count++] = parse_line(start, end, line_number++);
+    // process the next line, adding its end and start states
+    // to the global start_states and end_states arrays
+    parse_line(start, end, line_number++);
   }
   
-  if(states_count == 0) {
+  if(routes_count == 0) {
     printf("Error: the input file contains no routes\n");
     exit(1);
   }
@@ -288,9 +297,9 @@ int main(int argc, char **argv) {
   // transitions together. To start this, each url's
   // start state is merged, so all state machine paths
   // can be followed from a single starting point.
-  state *current_state, *start_state = states[0];
-  for(int i = 1; i < states_count; i++) {
-    current_state = states[i];
+  state *current_state, *start_state = start_states[0];
+  for(int i = 1; i < routes_count; i++) {
+    current_state = start_states[i];
     start_state->transitions[start_state->transitions_count++] = current_state->transitions[0];
   }
   
