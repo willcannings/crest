@@ -14,25 +14,27 @@ typedef enum {
 typedef struct {
   // request
   char  *request_buffer;
-  char  *request_data;
-  int   request_data_size;
-  int   request_buffer_size;
+  char  *line_start;
+  char  *line_end;
+  int   request_data_length;
+  int   request_buffer_length;
   int   server;
   int   client;
 	http_method method;
 	char  *uri;
 	int   http_major_version;
 	int   http_minor_version;
+  int   body_offset;
 	char  *body;
 	char  *remote_address;
   char  **request_header_keys;
   char  **request_header_values;
-  int   request_header_keys_count;
+  int   request_headers_count;
   
   // response
   char  **response_header_keys;
   char  **response_header_values;
-  int   response_header_keys_count;
+  int   response_headers_count;
   char  *response_body;
   int   response_length;
 } crest_connection;
@@ -56,9 +58,7 @@ void crest_complete(crest_connection *connection);
 /*------------------------------------------------------------*/
 /* editable configuration values                              */
 /*------------------------------------------------------------*/
-#define MAX_METHOD_LENGTH			20
 #define MAX_URI_LENGTH				(10 * 1024)
-#define MAX_VERSION_LENGTH		3
 #define MAX_HEADER_KEY_LENGTH 255
 #define MAX_HEADER_VAL_LENGTH	(10 * 1024)
 
@@ -81,8 +81,7 @@ void crest_complete(crest_connection *connection);
 #define LF							'\n'
 #define CRLF						"\r\n"
 #define CRLF_LEN					2
-#define HTTP_VERSION_PREFIX			"HTTP/"
-#define HTTP_VERSION_PREFIX_LEN		5
+#define HTTP_VERSION_PREFIX_LEN		5   // "HTTP/"
 
 
 /*------------------------------------------------------------*/
@@ -114,5 +113,8 @@ void crest_complete(crest_connection *connection);
 // TEXT = <any OCTET except CTLs, but including LWS>
 // TODO: handle LWS here as per RFC
 #define move_to_end_of_TEXT(s)	  while(*s && not_ctl(s)) s++;
+
+// WS = 1*( SP | HT )
+#define move_to_end_of_ws(s)      while(*s && (*s == ' ') || (*s == '\t')) s++;
 
 #endif
