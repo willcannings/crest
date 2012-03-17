@@ -1,7 +1,7 @@
 #ifndef __included_crest__
 #define __included_crest__
 
-typedef struct {
+typedef enum {
   http_get,
   http_post,
   http_put,
@@ -13,6 +13,11 @@ typedef struct {
 
 typedef struct {
   // request
+  char  *request_data;
+  int   request_data_size;
+  int   request_data_buffer_size;
+  int   server;
+  int   client;
 	http_method method;
 	char  *uri;
 	int   http_major_version;
@@ -21,10 +26,12 @@ typedef struct {
 	char  *remote_address;
   char  **request_header_keys;
   char  **request_header_values;
+  int   request_header_keys_count;
   
   // response
   char  **response_header_keys;
   char  **response_header_values;
+  int   response_header_keys_count;
   char  *response_body;
   int   response_length;
 } crest_connection;
@@ -60,6 +67,8 @@ void crest_complete(crest_connection *connection);
 /*------------------------------------------------------------*/
 #define CREST_PARSE_ERROR			0
 #define CREST_PARSE_OK				1
+#define CREST_READ_ERROR      0
+#define CREST_READ_OK         1
 
 
 /*------------------------------------------------------------*/
