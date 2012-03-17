@@ -18,9 +18,20 @@
 int crest_read_line(crest_connection *connection) {
   int bytes = 0, total = 0, crlf_found = 0;
   
+  // check if the current buffer contains a new line
+  char *ptr = connection->request_data;
+  char *end = connection->request_buffer + (data_length - 1);
+  
+  while(ptr < end) {
+    if((ptr[0] == CR) && (ptr[1] == LF))
+      return CREST_READ_OK;
+    ptr++;
+  }
+  
+  // read more from the socket if a line isn't present
   // TODO: handle realloc failure
-  if((connection->request_data_buffer_size - connection->request_data_size) < MAX_LINE_LENGTH)
-    connection->request_data = (char *) realloc(connection->request_data, connection->request_data_buffer_size + MAX_LINE_LENGTH);
+  if((connection->request_buffer_size - connection->request_data_size) < MAX_LINE_LENGTH)
+    connection->request_data = (char *) realloc(connection->request_data, connection->request_buffer_size + MAX_LINE_LENGTH);
   char *buffer = connection->request_data + connection->request_data_size;
     
   while(bytes < MAX_LINE_LENGTH && !crlf_found) {
@@ -129,7 +140,7 @@ int crest_parse_request_line(crest_connection *connection) {
 	connection->http_minor_version = (unsigned long) strtol(start, &(end), 10);
 	
 	// check to make sure we're at the end of the line
-	if(*end == CR)
+	if((*end == CR) && (*(++end) == LF))
 		return CREST_PARSE_OK;
 	else
 		return CREST_PARSE_ERROR;	

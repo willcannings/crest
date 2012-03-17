@@ -13,9 +13,10 @@ typedef enum {
 
 typedef struct {
   // request
+  char  *request_buffer;
   char  *request_data;
   int   request_data_size;
-  int   request_data_buffer_size;
+  int   request_buffer_size;
   int   server;
   int   client;
 	http_method method;
